@@ -15,12 +15,6 @@ function language.default_obfuscate(word)
   return res
 end
 
-language.emote_chars = { start = {}, stop = {} }
-language.emote_chars.start["["] = true
-language.emote_chars.stop["]"] = true
-language.emote_chars.start["*"] = true
-language.emote_chars.stop["*"] = true
-
 language.default = nil
 
 --- Adds a language to the system.
