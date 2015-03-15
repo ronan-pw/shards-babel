@@ -56,29 +56,32 @@ end
 --- A function which translates a string based on a dictionary. Used to obfuscate unknown language.
 -- @param dict The dictionary used.
 -- @param original The string to translate.
-function language.index:translate(original)
+function language.index:translate(original)  
   if self.dictionary == nil then
     return language.default_obfuscate(original)
   end
+
+  local result = self.dictionary:lookup(original)
+  if result ~= nil then
+    return language.match_case(original, result)
+  end
   
-  local longest = self.dictionary.longest
+  local longest = self.dictionary.partial.longest
   if longest == nil then
     return language.default_obfuscate(original)
   end
 
-  local result = ""
+  result = ""
   local remaining = original
   local shortest = self.dictionary.shortest
 
   function translated(length, to)
     result = result .. to
     remaining = remaining:sub(1 + length, #remaining)
-  end
-
+  end  
   while remaining ~= "" do    
     local max_match_length
-    max_match_length = math.min(longest, #remaining)
-
+    max_match_length = math.min(longest, #remaining)    
     local lookup, len = self.dictionary:lookup_partial(remaining)
     if lookup ~= nil then
       result = result .. language.match_case(remaining:sub(1, len), lookup)

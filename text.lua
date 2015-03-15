@@ -1,9 +1,6 @@
 local text = { index = {} }
 local words = require "words"
 
-text.SPEAK = 1
-text.WRITE = 2
-
 --- Attempts to translate the text given a certain language skill level.
 -- @param skill The skill level of the translator.
 function text.index:translate(skill)
@@ -20,10 +17,12 @@ function text.index:translate(skill)
       return self.obfuscated()
     else
       -- Partial translation.
-      return obfuscate(skill)
+      return self.obfuscate(skill)
     end
   end
 end
+
+text.index.is_text = true
 
 --- Creates and returns a new text which can be obfuscated.
 -- @param original The original text in a RL language.
@@ -34,9 +33,9 @@ function text.new(language, strings, expresser_skill, spoken)
   new_text.strings = strings
   new_text.skill = expresser_skill
 
-  local obfuscated, min_skill, max_skill
+  local min_skill, max_skill
 
-  function obfuscate(skill)
+  function new_text.obfuscate(skill)
     local result = ""
     local strs = strings
     for i = 1, #strs do
@@ -62,10 +61,9 @@ function text.new(language, strings, expresser_skill, spoken)
   end
 
   --- The obfuscated text.
+  local obfuscated
   function new_text.obfuscated()
-    if not obfuscated then
-      obfuscated = obfuscate(0)
-    end    
+    obfuscated = obfuscated or new_text.obfuscate(0)
     return obfuscated
   end
 

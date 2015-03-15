@@ -1,23 +1,25 @@
 local dictionary = { index = {} }
 
---- Creates a dictionary based on a table of words and their translations.
--- @param words_table A table who's keys are words and their values are translations.
-function dictionary.new(words_table)
-  local dict = {}
+--- Creates a dictionary based on a table of strings, words and their translations.
+-- @param partials A table who's keys are strings and their values are translations. Usually used to substitute letters in a larger word.
+-- @param words Whole-words and their translations.
+function dictionary.new(partials, wholes)
+  local dict = { partial = {}, wholes = wholes or {} }
+  partials = partials or {}
   local shortest
   local longest
 
   function init(length)
-    if dict[length] == nil then
-      dict[length] = {}
+    if dict.partial[length] == nil then
+      dict.partial[length] = {}
     end
   end
 
   -- Build the dictionary by word length.
-  for k,v in pairs(words_table) do
+  for k,v in pairs(partials) do
     local length = #k
     init(length)
-    dict[length][k:lower()] = v:lower()
+    dict.partial[length][k:lower()] = v:lower()
     if longest == nil or length > longest then
       longest = length
     end
@@ -33,37 +35,40 @@ function dictionary.new(words_table)
     end
   end
 
-  dict.shortest = shortest
-  dict.longest = longest
+  dict.partial.shortest = shortest
+  dict.partial.longest = longest
   setmetatable(dict, { __index = dictionary.index })
 
   return dict
 end
 
---- Looks up a string in a dictionary.
+--- Looks up a whole word in a dictionary.
 -- @param dict The dictionary used.
 -- @param string The string to look up.
-function dictionary.index:lookup(string)
-  local sub_dict = self[#string]
-  if sub_dict ~= nil then
-    return sub_dict[string:lower()]
-  end
-  return nil
+function dictionary.index:lookup(word)
+  return self.wholes[word:lower()]
 end
 
 --- Attempts to find a complete or partial match for a given string.
 -- @param string The string to look up.
 function dictionary.index:lookup_partial(string)
-  local shortest = self.shortest
-  if shortest == nil or self.longest == nil then
+  local shortest = self.partial.shortest
+  if shortest == nil or self.partial.longest == nil then
     return nil
   end
 
-  local max_match_length = math.min(self.longest, #string)
+  local max_match_length = math.min(self.partial.longest, #string)
 
   for len = max_match_length, shortest, -1 do
     local sub = string:sub(1, len)
-    local lookup = self:lookup(sub)
+
+    local sub_dict = self.partial[len]    
+    if sub_dict ~= nil then
+      lookup = sub_dict[sub:lower()]
+    else
+      lookup = nil
+    end
+
     if lookup ~= nil then
       -- Translation found.
       return lookup, len

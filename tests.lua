@@ -38,46 +38,53 @@ end)
 
 local english_to_french
 local blank_dict
+local english_to_french_substrings = {--[[
+  
+  goodbye = "au revoir",
+  bye = "au revoir",
+  cruel = "sadique",
+  multi = "beaucoup"
+]]}
+english_to_french_substrings["the "] = "l'"
 describe("dictionaries", function()
   it("should be creatable", function()
     blank_dict = dict.new({})
     english_to_french = dict.new({
+      multi = "beaucoup-",
+      e = "é"
+    }, {
+      no = "non",
+      yes = "oui",
+      the = "le",
       good = "bon",
       goodbye = "au revoir",
       bye = "au revoir",
-      cruel = "sadique",
-      multi = "beaucoup"
+      cruel = "sadique"
     })
   end)
-  it("should find words which exist", function()
-    assert.are.equal("bon", english_to_french:lookup("good"))
-    assert.are.equal("au revoir", english_to_french:lookup("BYE"))
-    assert.are.equal("beaucoup", english_to_french:lookup("Multi"))
+  it("find partial matches", function()
+    assert.are.same({"é",1}, {english_to_french:lookup_partial("e")})
+    assert.are.same({"beaucoup-",5}, {english_to_french:lookup_partial("multiverse")})
   end)
-  it("should not find words which don't exist", function()
-    assert.are.equal(nil, english_to_french:lookup("x"))
-    assert.are.equal(nil, english_to_french:lookup("xy"))
-    assert.are.equal(nil, english_to_french:lookup("abcdefghij"))
+  it("not find partial matches which don't exist", function()
+    assert.are.same({nil, 0}, {english_to_french:lookup_partial("x")})
+    assert.are.same({nil, 0}, {english_to_french:lookup_partial("xy")})
+    assert.are.same({nil, 0}, {english_to_french:lookup_partial("abcdefghij")})
   end)
-  it("should not find words of unique sizes", function()
-    assert.are.equal(nil, english_to_french:lookup("to"))
-    assert.are.equal(nil, english_to_french:lookup("a"))
-    assert.are.equal(nil, english_to_french:lookup("seventeen"))
+  it("translate whole words", function()
+    assert.are.equal("le", english_to_french.wholes["the"])
+    assert.are.equal("au revoir", english_to_french.wholes["goodbye"])
+    assert.are.equal("bon", english_to_french.wholes["good"])
   end)
-  it("should return the length of their longest word", function()
-    assert.are.equal(7, english_to_french.longest)
+  it("not crash when looking up strings of sizes not in the partial dictionary", function()
+    assert.are.same({nil, 0}, {english_to_french:lookup_partial("to")})
+    assert.are.same({nil, 0}, {english_to_french:lookup_partial("seventeen")})
   end)
-  it("should return the length of their shortest word", function()
-    assert.are.equal(3, english_to_french.shortest)
+  it("return the length of their longest string", function()
+    assert.are.equal(5, english_to_french.partial.longest)
   end)
-  it("should try to match partial words", function()
-    local match, len = english_to_french:lookup_partial("multiverse")
-    assert.are.equal("beaucoup", match)
-    assert.are.equal(5, len)
-
-    match, len = english_to_french:lookup_partial("bon")
-    assert.are.equal(nil, match)
-    assert.are.equal(0, len)
+  it("return the length of their shortest string", function()
+    assert.are.equal(1, english_to_french.partial.shortest)
   end)
 end)
 
@@ -107,13 +114,13 @@ describe("language", function()
     assert.are.equal("Au revoir", french:translate("Goodbye"))
     assert.are.equal("au revoir", french:translate("bye"))
     assert.are.equal("SADIQUE", french:translate("CRUEL"))
-    assert.are.equal("Beaucoup", french:translate("MULti"))
+    assert.are.equal("Beaucoup-", french:translate("MULti"))
   end)
   it("should translate partial words", function()
-    assert.are.equal("beaucoupverse", french:translate("multiverse"))
-    assert.are.equal("versebeaucoup", french:translate("versemulti"))
-    assert.are.equal("verseBeaucoup", french:translate("verseMulti"))
-    assert.are.equal("verseBEAUCOUP", french:translate("verseMULTI"))
+    assert.are.equal("beaucoup-vérsé", french:translate("multiverse"))
+    assert.are.equal("vérsébeaucoup-", french:translate("versemulti"))
+    assert.are.equal("vérséBeaucoup-", french:translate("verseMulti"))
+    assert.are.equal("vérséBEAUCOUP-", french:translate("verseMULTI"))
   end)
   it("should match cases", function()
     assert.are.equal("Bon", lang.match_case("Good","bon"))
@@ -158,6 +165,9 @@ describe("text", function()
   end)
   it("should obfuscate", function()
     assert.are.equal(obf, gcm.obfuscated())
+    assert.are.equal(
+      "[yells] Au revoir, [pauses] sadique beaucoup-vérsé! / plz DM kill me",
+      french:express(orig, 80, true).obfuscated())
   end)
   it("should completely translate", function()
     assert.are.equal(orig, gcm:translate(gcm.max_skill()))
@@ -172,5 +182,33 @@ describe("text", function()
     assert.are.equal(nil, gcm.id_language(5))
     assert.are.equal(asterisk, gcm.id_language(12.5))
     assert.are.equal(asterisk, gcm.id_language(100))
+  end)
+end)
+
+describe("performance", function()
+  local max_players = 128
+  local pc_skills = {}
+  it("process 1 sentence per 6 seconds from every player using less than 0.1% CPU", function()
+    for i = 1, max_players do
+      pc_skills[i] = i / 100
+    end
+
+    -- Ten minutes worth of constant speaking
+    local seconds = 10 * 60
+
+    local start = os.clock()
+    for loop = 1, (seconds / 6) do
+      for speaker = 1, max_players do
+        local expressed = french:express(orig, pc_skills[speaker], true)
+        if expressed.is_text then
+          for listener = 1, max_players do
+            expressed:translate(pc_skills[listener])
+          end
+        end
+      end
+    end
+    local elapsed = os.clock() - start
+
+    assert.are.equal(elapsed < (seconds * 0.001), true)    
   end)
 end)
