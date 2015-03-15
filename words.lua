@@ -1,16 +1,16 @@
-local parse = {}
+local words = {}
 local dictionary = require "dictionary"
 
 --- Returns whether or not a string is a word.
 -- @param str A string.
-function parse.is_word(str)
+function words.is_word(str)
   local head, tail = str:find("%a")
   return head == 1
 end
 
 --- Returns the skill required to translate a word, from 0 to 100.
 -- @param word A word (non-empty string without spaces or punctuation)
-function parse.skill_required(word)
+function words.skill_required(word)
   if word == "" or type(word) ~= "string" then
     return nil
   end
@@ -26,23 +26,19 @@ function parse.skill_required(word)
   end
 end
 
---- Returns whether or not a given language skill can translate a word.
--- @param complexity A number from 0 to 100.
+--- Returns whether or not a given language skill indicates that a given word is understood.
+-- @param word The word in question.
 -- @param skill A creature's language skill, from 0 to 100.
-function parse.can_translate(word, skill)
-  local req = parse.skill_required(word)
+-- @param spoken A boolean indicating if the text was spoken (false for written)
+function words.understands(word, skill, spoken)
+  local req = words.skill_required(word)
   return req ~= nil and skill >= req
 end
 
-parse.can_speak = parse.can_translate
-parse.can_hear = parse.can_translate
-parse.can_write = parse.can_translate
-parse.can_read = parse.can_translate
+words.ooc = "%/[^/]+/?"
+words.emote = "%[[^%]]+%]?"
 
-parse.ooc = "%/[^/]+/?"
-parse.emote = "%[[^%]]+%]?"
-
-function parse.to_strings(text)
+function words.to_strings(text)
   local result = {}
   local count = 0
   local index = 1
@@ -70,8 +66,8 @@ function parse.to_strings(text)
     return r
   end
 
-  local ooc = range(parse.ooc)
-  local emote = range(parse.emote)
+  local ooc = range(words.ooc)
+  local emote = range(words.emote)
   local letter = range("%a+")
 
   while index <= #text do
@@ -91,4 +87,4 @@ function parse.to_strings(text)
   return result
 end
 
-return parse
+return words

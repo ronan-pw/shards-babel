@@ -1,5 +1,8 @@
 local text = { index = {} }
-local parse = require "parse"
+local words = require "words"
+
+text.SPEAK = 1
+text.WRITE = 2
 
 --- Attempts to translate the text given a certain language skill level.
 -- @param skill The skill level of the translator.
@@ -25,7 +28,7 @@ end
 --- Creates and returns a new text which can be obfuscated.
 -- @param original The original text in a RL language.
 -- @param language The IG language of the text.
-function text.new(language, strings, expresser_skill)
+function text.new(language, strings, expresser_skill, spoken)
   local new_text = {}
   new_text.language = language
   new_text.strings = strings
@@ -38,7 +41,7 @@ function text.new(language, strings, expresser_skill)
     local strs = strings
     for i = 1, #strs do
       local str = strs[i]
-      if parse.is_word(str) and not parse.can_translate(str, skill) then
+      if words.is_word(str) and not words.understands(str, skill) then
         result = result .. language:translate(str)
       else
         result = result .. str
@@ -80,8 +83,8 @@ function text.new(language, strings, expresser_skill)
     local strs = strings
     for i = 1, #strs do
       local str = strs[i]
-      if parse.is_word(str) then
-        local skill = parse.skill_required(str)
+      if words.is_word(str) then
+        local skill = words.skill_required(str)
         skills[i] = skill
         if skill > max_skill then
           max_skill = skill
@@ -109,7 +112,8 @@ function text.new(language, strings, expresser_skill)
     return max_skill
   end
 
-  --- Returns the language if a given skill level can identify it. Returns nil on failure, and may identify the wrong language.
+  --- Returns the language if a given skill level can identify it. 
+  --- Returns nil on failure, and may identify the wrong language.
   -- @param skill The skill level of the translator.
   function new_text.id_language(skill)
     if skill >= (new_text.min_skill() / 2) then

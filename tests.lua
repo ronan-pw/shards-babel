@@ -1,37 +1,38 @@
-local dictionary = require "dictionary"
-local languages = require "language"
-local parse = require "parse"
-local text = require "text"
+local babel = require "module"
+local dict = babel.dictionary
+local lang = babel.language
+local words = babel.words
+local text = babel.text
 
 local orig = "[yells] Goodbye, [pauses] cruel multiverse! / plz DM kill me"
 local strings = { "[yells]", " ", "Goodbye", ", ", "[pauses]", " ", "cruel", " ", "multiverse", "! ", "/ plz DM kill me" }
 
-describe("parse", function()
+describe("words", function()
   it("can break down text into strings of words and non-words", function()
-    assert.are.same(strings, parse.to_strings(orig))
+    assert.are.same(strings, words.to_strings(orig))
   end)
   describe("complexity", function()
     it("only works on words", function()
-      assert.are.equal(nil, parse.skill_required(""))
-      assert.are.equal(nil, parse.skill_required(5))
+      assert.are.equal(nil, words.skill_required(""))
+      assert.are.equal(nil, words.skill_required(5))
     end)
     it("is a function of word length", function()
-      assert.are.equal(5, parse.skill_required("a"))
-      assert.are.equal(25, parse.skill_required("babel"))
-      assert.are.equal(100, parse.skill_required("pneumonoultramicroscopicsilicovolcanoconiosis"))
+      assert.are.equal(5, words.skill_required("a"))
+      assert.are.equal(25, words.skill_required("babel"))
+      assert.are.equal(100, words.skill_required("pneumonoultramicroscopicsilicovolcanoconiosis"))
     end)
   end)
   it("can be translated when skill >= skill_required", function()
-    assert.are.equal(false, parse.can_translate("",5))
-    assert.are.equal(true, parse.can_translate("a",5))
-    assert.are.equal(false, parse.can_translate("to",5))
+    assert.are.equal(false, words.understands("",5))
+    assert.are.equal(true, words.understands("a",5))
+    assert.are.equal(false, words.understands("to",5))
   end)
   it("can be detected", function()
-    assert.are.equal(false, parse.is_word(""))
-    assert.are.equal(true, parse.is_word("test"))
-    assert.are.equal(false, parse.is_word("1234"))
-    assert.are.equal(false, parse.is_word("1234!"))
-    assert.are.equal(false, parse.is_word("..."))
+    assert.are.equal(false, words.is_word(""))
+    assert.are.equal(true, words.is_word("test"))
+    assert.are.equal(false, words.is_word("1234"))
+    assert.are.equal(false, words.is_word("1234!"))
+    assert.are.equal(false, words.is_word("..."))
   end)
 end)
 
@@ -39,8 +40,8 @@ local english_to_french
 local blank_dict
 describe("dictionaries", function()
   it("should be creatable", function()
-    blank_dict = dictionary.new({})
-    english_to_french = dictionary.new({
+    blank_dict = dict.new({})
+    english_to_french = dict.new({
       good = "bon",
       goodbye = "au revoir",
       bye = "au revoir",
@@ -53,7 +54,7 @@ describe("dictionaries", function()
     assert.are.equal("au revoir", english_to_french:lookup("BYE"))
     assert.are.equal("beaucoup", english_to_french:lookup("Multi"))
   end)
-  it("should not find words which don't exit", function()
+  it("should not find words which don't exist", function()
     assert.are.equal(nil, english_to_french:lookup("x"))
     assert.are.equal(nil, english_to_french:lookup("xy"))
     assert.are.equal(nil, english_to_french:lookup("abcdefghij"))
@@ -84,12 +85,12 @@ local blank
 local eng
 local french
 local asterisk
-describe("languages", function()
+describe("language", function()
   it("be creatable", function()
-    asterisk = languages.new({ name = "asterisk" })
-    blank = languages.new({ name = "blank", dictionary = blank_dict })
-    eng = languages.new({ name = "eng" })
-    french = languages.new({ name = "french", dictionary = english_to_french })
+    asterisk = lang.new({ name = "asterisk" })
+    blank = lang.new({ name = "blank", dictionary = blank_dict })
+    eng = lang.new({ name = "eng" })
+    french = lang.new({ name = "french", dictionary = english_to_french })
   end)
   it("default to asterisk obfuscation", function()
     assert.are.equal("*****", asterisk.obfuscate("fnord"))
@@ -98,8 +99,8 @@ describe("languages", function()
     assert.are.equal("blan",blank.abbrev)
     assert.are.equal("eng",eng.abbrev)
   end)
-  it("use the first added language as the default", function()
-    assert.are.equal(asterisk, languages.default)
+  it("use the first added lang as the default", function()
+    assert.are.equal(asterisk, lang.default)
   end)
   it("should translate whole words", function()
     assert.are.equal("bon", french:translate("good"))
@@ -115,23 +116,23 @@ describe("languages", function()
     assert.are.equal("verseBEAUCOUP", french:translate("verseMULTI"))
   end)
   it("should match cases", function()
-    assert.are.equal("Bon", languages.match_case("Good","bon"))
-    assert.are.equal("B", languages.match_case("A","b"))
-    assert.are.equal("BONJOUR", languages.match_case("HELLO","bonjour"))
-    assert.are.equal("bonjour", languages.match_case("hELLO","bonjour"))
+    assert.are.equal("Bon", lang.match_case("Good","bon"))
+    assert.are.equal("B", lang.match_case("A","b"))
+    assert.are.equal("BONJOUR", lang.match_case("HELLO","bonjour"))
+    assert.are.equal("bonjour", lang.match_case("hELLO","bonjour"))
   end)
   it("use default with blank dictionaries", function()
     assert.are.equal("**********", blank:translate("multiverse"))
   end)
   describe("should", function()  
-    local speech_problems_0 = asterisk:speak(orig, 0)
-    local speech_problems_30 = asterisk:speak(orig, 30)
-    local speech_problems_40 = asterisk:speak(orig, 40)
-    local speech_100 = asterisk:speak(orig, 100)
+    local speech_problems_0 = asterisk:express(orig, 0, true)
+    local speech_problems_30 = asterisk:express(orig, 30, true)
+    local speech_problems_40 = asterisk:express(orig, 40, true)
+    local speech_100 = asterisk:express(orig, 100, true)
 
-    local writing_problems_0 = asterisk:write(orig, 0)
-    local writing_problems_30 = asterisk:write(orig, 30)
-    local writing_80 = asterisk:write(orig, 80)
+    local writing_problems_0 = asterisk:express(orig, 0, false)
+    local writing_problems_30 = asterisk:express(orig, 30, false)
+    local writing_80 = asterisk:express(orig, 80, false)
 
     describe("flag words which cannot be", function()
       it("spoken", function()
@@ -150,7 +151,7 @@ end)
 
 describe("text", function()  
   local obf = "[yells] *******, [pauses] ***** **********! / plz DM kill me"
-  local gcm = asterisk:write(orig, 80)
+  local gcm = asterisk:express(orig, 80, false)
   it("should compute skill ranges", function()
     assert.are.equal(25, gcm.min_skill())
     assert.are.equal(50, gcm.max_skill())

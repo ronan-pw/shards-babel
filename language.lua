@@ -1,6 +1,6 @@
 local language = { index = {} }
 local dictionary = require "dictionary"
-local words = require "parse"
+local words = require "words"
 local text = require "text"
 
 local count = 0
@@ -98,42 +98,29 @@ function language.index:translate(original)
   return result
 end
 
-function language.try_express(content, skill, can_express)
+--- Attempts to express a language.
+--- Returns the spoken content or an array of problem words which are unknown to the speaker.
+-- @param language The language table spoken.
+-- @param content The spoken content.
+-- @param skill The skill of the speaker.
+-- @param spoken True if the expression is spoken, false if written.
+function language.index.express(language, content, skill, spoken)
   local strings = words.to_strings(content, language.emote_chars)
   local problems = {}
   local problem_count = 0
   for i = 1, #strings do
     local str = strings[i]
-    if words.is_word(str) and not can_express(str, skill) then
+    if words.is_word(str) and not words.understands(str, skill, spoken) then
       problem_count = problem_count + 1
-      problems[problem_count] = str      
+      problems[problem_count] = str
     end
   end
 
-  return strings, problems
-end
-
---- Attempts to speak a language.
---- Returns the spoken content and an array of problem words which cannot be spoken with the given skill level.
--- @param language The language table spoken.
--- @param content The spoken content.
--- @param skill The skill of the speaker.
-function language.index:speak(content, skill)
-  return self:write(content, skill)
-end
-
---- Attempts to speak a language.
---- Returns the written content, or an array of words which cannot be written with the given skill level.
--- @param language The language table written.
--- @param content The written content.
--- @param skill The skill of the writer.
-function language.index:write(content, skill)
-  local strings, problems = language.try_express(content, skill, words.can_write)
-
   if #problems > 0 then
     return problems
+  else
+    return text.new(language, strings, skill, spoken)
   end
-  return text.new(self, strings, skill)
 end
 
 return language

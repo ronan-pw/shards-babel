@@ -1,7 +1,10 @@
 local babel = {}
-babel.words = require "words"
+local mt = {}
+babel.dictionary = require "dictionary"
 babel.text = require "text"
-babel.languages = require "languages"
+babel.language = require "language"
+babel.words = require "words"
+babel.learning = require "learning"
 
 -- General configuration options:
 
