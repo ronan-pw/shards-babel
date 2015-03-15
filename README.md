@@ -1,0 +1,1 @@
+A system for obfuscating and translating fictional languages in Lua. Intended for use in the game Shards Online.
