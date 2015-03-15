@@ -18,4 +18,4 @@ Todo:
 This repository will not be integrated with Shards itself until the alpha NDA has dropped.
 
 Usage:
-`busted tests` to run the test suite.
+`busted tests.lua` to run the test suite.
